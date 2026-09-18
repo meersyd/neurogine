@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getProducts } from '../../data/api/productsApi';
+import { getProducts, searchProducts } from '../../data/api/productsApi';
 import { isAbortError } from '../../data/api/http';
 import { hasMoreProducts } from '../../data/pagination';
 import type { Product } from '../../data/types/product';
@@ -10,7 +10,12 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 }
 
-export function useProductList() {
+function fetchPage(query: string, skip: number, signal?: AbortSignal) {
+  const trimmed = query.trim();
+  return trimmed ? searchProducts(trimmed, skip, signal) : getProducts(skip, signal);
+}
+
+export function useProductList(query: string) {
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [phase, setPhase] = useState<ListPhase>('loading');
@@ -22,9 +27,11 @@ export function useProductList() {
   const productsRef = useRef(products);
   const totalRef = useRef(total);
   const loadingMoreRef = useRef(false);
+  const queryRef = useRef(query);
 
   productsRef.current = products;
   totalRef.current = total;
+  queryRef.current = query;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -37,7 +44,7 @@ export function useProductList() {
       setTotal(0);
 
       try {
-        const response = await getProducts(0, controller.signal);
+        const response = await fetchPage(query, 0, controller.signal);
         setProducts(response.products);
         setTotal(response.total);
         setPhase('success');
@@ -52,7 +59,7 @@ export function useProductList() {
 
     loadFirstPage();
     return () => controller.abort();
-  }, [reloadToken]);
+  }, [query, reloadToken]);
 
   const retry = useCallback(() => {
     setReloadToken((token) => token + 1);
@@ -71,7 +78,7 @@ export function useProductList() {
     setLoadMoreError(null);
 
     try {
-      const response = await getProducts(productsRef.current.length);
+      const response = await fetchPage(queryRef.current, productsRef.current.length);
       setProducts((current) => {
         const seen = new Set(current.map((product) => product.id));
         const incoming = response.products.filter((product) => !seen.has(product.id));
