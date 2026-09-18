@@ -26,7 +26,6 @@ export function ProductImage({ uri, style, accessibilityLabel }: ProductImagePro
       style={[styles.image, style]}
       contentFit="cover"
       transition={150}
-      placeholder={{ color: colors.placeholder }}
       onError={() => setFailed(true)}
       accessibilityLabel={accessibilityLabel}
     />

@@ -5,6 +5,8 @@ node_modules/
 
 # local tooling
 .claude/
+AGENTS.md
+CLAUDE.md
 
 # Expo
 .expo/

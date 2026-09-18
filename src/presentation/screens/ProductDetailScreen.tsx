@@ -12,7 +12,8 @@ import { RatingStars } from '../components/RatingStars';
 
 export function ProductDetailScreen() {
   const navigation = useNavigation();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: idParam } = useLocalSearchParams<{ id: string | string[] }>();
+  const id = Array.isArray(idParam) ? idParam[0] : idParam;
   const { width } = useWindowDimensions();
   const { product, phase, errorMessage, retry } = useProductDetail(id);
 

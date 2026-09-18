@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Product } from '../../data/types/product';
 import { colors, radius, spacing } from '../theme';
@@ -22,10 +31,16 @@ export function ProductListScreen() {
     phase,
     errorMessage,
     isLoadingMore,
+    isRefreshing,
     loadMoreError,
     retry,
+    refresh,
     loadMore,
   } = useProductList(debouncedQuery);
+
+  const refreshControl = (
+    <RefreshControl refreshing={isRefreshing} onRefresh={refresh} tintColor={colors.accent} />
+  );
 
   const onPressProduct = (product: Product) => {
     router.push(`/product/${product.id}`);
@@ -40,14 +55,20 @@ export function ProductListScreen() {
     body = <ErrorState message={errorMessage ?? 'Could not load products.'} onRetry={retry} />;
   } else if (products.length === 0) {
     body = (
-      <EmptyState
-        title={trimmedQuery ? 'No matching products' : 'No products yet'}
-        message={
-          trimmedQuery
-            ? `Nothing matched “${trimmedQuery}”. Try a different search.`
-            : 'The catalog came back empty. Try again in a moment.'
-        }
-      />
+      <ScrollView
+        contentContainerStyle={styles.emptyWrap}
+        refreshControl={refreshControl}
+        keyboardShouldPersistTaps="handled"
+      >
+        <EmptyState
+          title={trimmedQuery ? 'No matching products' : 'No products yet'}
+          message={
+            trimmedQuery
+              ? `Nothing matched “${trimmedQuery}”. Try a different search.`
+              : 'The catalog came back empty. Try again in a moment.'
+          }
+        />
+      </ScrollView>
     );
   } else {
     body = (
@@ -60,6 +81,8 @@ export function ProductListScreen() {
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        refreshControl={refreshControl}
         ListFooterComponent={
           <ListFooter
             isLoadingMore={isLoadingMore}
@@ -112,6 +135,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  emptyWrap: {
+    flexGrow: 1,
   },
   list: {
     padding: spacing.lg,

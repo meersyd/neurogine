@@ -21,6 +21,7 @@ export function useProductList(query: string) {
   const [phase, setPhase] = useState<ListPhase>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -65,6 +66,32 @@ export function useProductList(query: string) {
     setReloadToken((token) => token + 1);
   }, []);
 
+  const refresh = useCallback(async () => {
+    setIsRefreshing(true);
+    setLoadMoreError(null);
+
+    try {
+      const response = await fetchPage(queryRef.current, 0);
+      setProducts(response.products);
+      setTotal(response.total);
+      setErrorMessage(null);
+      setPhase('success');
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      const message = toErrorMessage(error);
+      if (productsRef.current.length === 0) {
+        setErrorMessage(message);
+        setPhase('error');
+      } else {
+        setLoadMoreError(message);
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
   const loadMore = useCallback(async () => {
     if (phase !== 'success' || loadingMoreRef.current) {
       return;
@@ -100,9 +127,11 @@ export function useProductList(query: string) {
     phase,
     errorMessage,
     isLoadingMore,
+    isRefreshing,
     loadMoreError,
     hasMore: hasMoreProducts(products.length, total),
     retry,
+    refresh,
     loadMore,
   };
 }
